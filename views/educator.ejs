@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+<%- include('header', { title: 'Educator Dashboard' }) %>
+
+<div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+    <div class="col-start-2 col-span-7 md:col-span-7 bg-sky-600 p-6 rounded-lg shadow-md  my-16">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-4xl font-bold text-white">Welcome <%= name %></h1>
+            <a href="/signout" class="text-white hover:underline">Sign Out</a>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-2xl font-semibold text-white mb-4">Administrative Actions:</h2>
+            <button class="bg-white text-sky-600 px-4 py-2 p-2 m-3 rounded-md hover:bg-sky-300 focus:outline-none focus:ring focus:border-white-300 text-black-600">Create New Course</button> <br>
+            <button class="bg-white text-sky-600 px-4 py-2 p-2 m-3 rounded-md hover:bg-sky-300 focus:outline-none focus:ring focus:border-white-300 ml-4 text-white-900">My Courses</button> <br>
+            <button class="bg-white text-sky-600 px-4 py-2 p-2 m-3 rounded-md hover:bg-sky-300 focus:outline-none focus:ring focus:border-white-300 ml-4 text-white-900">View Progress</button> <br>
+        </div>
+
+        <div>
+            <h2 class="text-2xl font-semibold text-white mb-4">Available Courses:</h2>
+            <!-- Display a list of available courses or any other relevant content -->
+            <ul class="list-disc text-white">
+                <li>Course 1</li>
+                <li>Course 2</li>
+                <li>Course 3</li>
+                <!-- Add more courses as needed -->
+            </ul>
+        </div>
+    </div>
+</div>
+
+<%- include('footer') %>
+</body>
+</html>
