@@ -6,8 +6,9 @@ const path = require('path')
 app.set('view engine', 'ejs')
 app.use(bodyParser.json())
 app.use(express.static(path.join(__dirname, 'public')))
+app.use(express.urlencoded({ extended: false }))
 app.get('/', (request, response) => {
-  response.render('index')
+  response.render('index', { title: 'LMS' })
 })
 app.get('/signup', (request, response) => {
   response.render('signup')
@@ -24,6 +25,18 @@ app.get('/course', (request, response) => {
 })
 app.get('/courses', (request, response) => {
   console.log('Available Courses')
+})
+app.get('/educatorcourses', async (request, response) => {
+  try {
+    const courses = await Course.findAll({
+      include: [{ model: Chapter }]
+    })
+
+    response.render('educourses', { courses })
+  } catch (error) {
+    console.log('Error while rendering Educator Courses page')
+    return response.status(500).json(error)
+  }
 })
 app.post('/courses', async (request, response) => {
   console.log('Creating a course', request.body)
@@ -60,9 +73,36 @@ app.get('/courses/:courseId', async (request, response) => {
     return response.status(422).json(error)
   }
 })
-// app.delete('courses/:id', (request, response) => {
-//   console.log('Delete a course with a ID:', request.params.id)
-// })
+app.delete(
+  '/courses/:id',
+  async (request, response) => {
+    const courseId = request.params.id
+
+    console.log('We have to delete a course with ID: ', courseId)
+
+    try {
+      // Find all chapters associated with the course
+      const chapters = await Chapter.findAll({ where: { courseId } })
+
+      // Delete all pages associated with the chapters
+      for (const chapter of chapters) {
+        await Page.destroy({ where: { chapterId: chapter.id } })
+      }
+
+      // Delete all chapters associated with the course
+      await Chapter.destroy({ where: { courseId } })
+
+      // Delete the course
+      const status = await Course.remove(courseId)
+
+      // eslint-disable-next-line no-unneeded-ternary
+      return response.json(status ? true : false)
+    } catch (err) {
+      console.error(err)
+      return response.status(422).json(err)
+    }
+  }
+)
 // Chapter Routes
 app.get('/chapter', async (request, response) => {
   console.log('Available chapters')
