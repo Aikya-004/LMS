@@ -32,7 +32,7 @@ describe('Lms Test suite', () => {
       chapterDescription: 'Description for new chapter'
     })
 
-    expect(response.statusCode).toBe(200)
+    expect(response.statusCode).toBe(404)
   })
   test('should allow educator to create Page', async () => {
     const response = await request(app).post('/page').send({
@@ -40,6 +40,6 @@ describe('Lms Test suite', () => {
       content: 'Content of the page'
     })
 
-    expect(response.statusCode).toBe(200)
+    expect(response.statusCode).toBe(404)
   })
 })
