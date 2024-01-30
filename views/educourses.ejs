@@ -13,7 +13,7 @@
                 <% courses.forEach(course => { %>
                     <li class="mb-4 flex items-center">
                         <div class="mr-2">
-                            <h3 class="text-lg font-semibold"><%= course.courseName %></h3>
+                            <h3 class="text-lg font-semibold"><a href="/chapters/<%= course.id %>"><%= course.courseName %></a></h3>
                             <p><%= course.courseDescription %></p>
                         </div>
                         <!-- Replace with a trash icon and fix the styling issue -->
@@ -35,19 +35,25 @@
     <div class="col">
         <h2 class="text-2xl font-bold mb-4">Add New Chapter</h2>
         <% if (courses.length > 0) { %>
-            <form action="/chapter" method="POST">
+            <form action="/chapter/<%= courses.length > 0 ? courses[0].id : '' %>" method="POST">
                 <div class="mb-4">
                     <label for="courseSelect" class="block text-sm font-semibold mb-2">Select Course</label>
-                    <select id="courseSelect" name="courseSelect" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required>
+                    <select id="courseSelect" name="courseId" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required onchange="updateFormAction()">
                         <% courses.forEach(course => { %>
-                            <option value="<%= course.courseName %>"><%= course.courseName %></option>
+                            <option value="<%= course.id %>"><%= course.courseName %></option>
                         <% }) %>
-                    </select>
+                    </select>  
                 </div>
                 <div class="mb-4">
-                    <label for="chapterTitle" class="block text-sm font-semibold mb-2">Chapter Title</label>
-                    <input type="text" id="chapterTitle" name="chapterTitle" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required>
+                    <label for="chapterName" class="block text-sm font-semibold mb-2">Chapter Name</label>
+                    <input type="text" id="chapterName" name="chapterName" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required>
                 </div>
+                <div class="mb-4">
+                    <label for="chapterDescription" class="block text-sm font-semibold mb-2">Chapter Description</label>
+                    <textarea id="chapterDescription" name="chapterDescription" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required></textarea>
+                </div>
+                <input type="hidden" id="courseId" name="courseId" value="<%= courses.length > 0 ? courses[0].id : '' %>">
+
                 <button type="submit" class="bg-white text-sky-600 px-4 py-2 rounded-md hover:bg-sky-700 focus:outline-none focus:ring focus:border-blue-300">Add Chapter</button>
             </form>
         <% } else { %>
@@ -77,4 +83,10 @@
             console.error('Error:', error);
         }
     }
+   
+    function updateFormAction() {
+        var selectedCourseId = document.getElementById('courseSelect').value;
+        document.querySelector('form').action = "/chapter/" + selectedCourseId;
+    }
+
     </script>

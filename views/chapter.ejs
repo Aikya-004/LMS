@@ -1,0 +1,61 @@
+<!-- chapter.ejs -->
+<%- include('header', { title: 'Chapters' }) %>
+<a href="/educatorcourses" class="text-white-600 text-sm font-semibold hover:text-blue-900 border-b-2 py-2 mb-4">Back to Courses</a>
+<br> <br>
+
+<div class="grid grid-cols-2 gap-8">
+    <!-- Left side - Display existing chapters -->
+    <div class="col">
+        <h2 class="text-2xl font-bold mb-4">Chapters for <%= course.courseName %></h2>
+
+        <% if (chapters.length > 0) { %>
+            <ul>
+                <% chapters.forEach(chapter => { %>
+                    <li class="mb-4">
+                        <h3 class="text-lg font-semibold"><%= chapter.chapterName %></h3>
+                        <p><%= chapter.chapterDescription %></p>
+                    </li>
+                <% }) %>
+            </ul>
+        <% } else { %>
+            <p>No chapters created yet.</p>
+        <% } %>
+    </div>
+
+    <!-- Right side - Add a new page to a chapter -->
+    <div class="col">
+        <h2 class="text-2xl font-bold mb-4">Add New Page</h2>
+        <% if (chapters.length > 0) { %>
+            <form action="/page/<%= chapters.length > 0 ? chapters[0].id : '' %>" method="POST">
+                <input type="hidden" name="chapterId" value="<%= chapters[0].id %>">
+                <div class="mb-4">
+                    <label for="chapterSelect" class="block text-sm font-semibold mb-2">Select Chapter</label>
+                    <select id="chapterSelect" name="chapterId" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required onchange="updateFormAction()">
+                        <% chapters.forEach(chapter => { %>
+                            <option value="<%= chapter.id %>"><%= chapter.chapterName %></option>
+                        <% }) %>
+                    </select>  
+                </div>
+                <div class="mb-4">
+                    <label for="title" class="block text-sm font-semibold mb-2">Page Title</label>
+                    <input type="text" id="title" name="title" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required>
+                </div>
+                <div class="mb-4">
+                    <label for="content" class="block text-sm font-semibold mb-2">Page Content</label>
+                    <textarea id="content" name="content" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300" required></textarea>
+                </div>
+                <button type="submit" class="bg-white text-sky-600 px-4 py-2 rounded-md hover:bg-sky-700 focus:outline-none focus:ring focus:border-blue-300">Add Page</button>
+            </form>
+        <% } else { %>
+            <p>No Pages available. Please create a chapter first.</p>
+        <% } %>
+    </div>
+</div>
+
+<%- include('footer') %>
+<script>
+function updateFormAction() {
+    var selectedChapterId = document.getElementById('chapterSelect').value;
+    document.querySelector('form').action = "/page/" + selectedChapterId;
+}
+</script>
