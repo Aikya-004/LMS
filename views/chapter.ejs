@@ -27,6 +27,7 @@
         <h2 class="text-2xl font-bold mb-4">Add New Page</h2>
         <% if (chapters.length > 0) { %>
             <form action="/page/<%= chapters.length > 0 ? chapters[0].id : '' %>" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="hidden" name="chapterId" value="<%= chapters[0].id %>">
                 <div class="mb-4">
                     <label for="chapterSelect" class="block text-sm font-semibold mb-2">Select Chapter</label>

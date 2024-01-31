@@ -1,45 +1,130 @@
 /* eslint-disable no-undef */
 const express = require('express')
+var csrf = require('csurf')
 const app = express()
-const { Course, Chapter, Page } = require('./models')
+const { Course, Chapter, Page, User } = require('./models')
 const bodyParser = require('body-parser')
+var cookieParser = require('cookie-parser')
 const path = require('path')
+const session = require('express-session')
+const passport = require('passport')
+const LocalStrategy = require('passport-local')
+const connectEnsureLogin = require('connect-ensure-login')
+
 app.set('view engine', 'ejs')
 app.use(bodyParser.json())
 app.use(express.static(path.join(__dirname, 'public')))
 app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser('shh!Some secret string'))
+app.use(csrf({ cookie: true }))
+
+app.use(session({
+  secret: 'my-super-secret-key-2344534532',
+  cookie: {
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}))
+app.use(passport.initialize())
+app.use(passport.session())
+
+passport.use(new LocalStrategy({
+  usernameField: 'email',
+  passwordField: 'password'
+}, (username, password, done) => {
+  User.findOne({ where: { email: username, password: password } })
+    .then((user) => {
+      if (user.role === 'educator') {
+        return done(null, user, { role: 'educator' })
+      } else if (user.role === 'student') {
+        return done(null, user, { role: 'student' })
+      } else {
+        return done(null, false, { message: 'Unknown role' })
+      }
+    })
+    .catch((error) => {
+      return (error)
+    })
+}))
+
+passport.serializeUser((user, done) => {
+  console.log('Serializing user in session', user.id)
+  done(null, user.id)
+})
+
+passport.deserializeUser((id, done) => {
+  User.findByPk(id)
+    .then(user => {
+      done(null, user)
+    })
+    .catch(error => {
+      done(error, null)
+    })
+})
+
+// user Routes
 app.get('/', (request, response) => {
-  response.render('index', { title: 'LMS' })
+  response.render('index', { title: 'LMS', csrfToken: request.csrfToken() })
 })
 app.get('/signup', (request, response) => {
-  response.render('signup')
+  response.render('signup', { title: 'Signup', csrfToken: request.csrfToken() })
 })
 app.get('/login', (request, response) => {
-  response.render('login')
+  response.render('login', { title: 'Login', csrfToken: request.csrfToken() })
 })
-app.get('/educator', (request, response) => {
-  response.render('educator', { name: 'Educator Dashboard' })
+app.get('/educator', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
+  const currentUser = request.user
+  response.render('educator', { name: currentUser.name })
+})
+
+app.post('/users', async (request, response) => {
+  console.log('Name', request.body.name)
+  try {
+    const user = await User.create({
+      name: request.body.name,
+      email: request.body.email,
+      password: request.body.password,
+      role: request.body.role
+    })
+    console.log('User role', user.role)
+    request.login(user, (error) => {
+      if (error) {
+        console.log(error)
+        console.log('An error occurred during login through user')
+      }
+      response.redirect(`/${user.role}`)
+    }
+    )
+  } catch (error) {
+    console.log('Error while crerating a new User')
+    console.log(error)
+    response.status(500).json(error)
+  }
 })
 // Course Routes
-app.get('/course', (request, response) => {
-  response.render('course')
+app.get('/course', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
+  response.render('course', { csrfToken: request.csrfToken() })
 })
-app.get('/courses', (request, response) => {
-  console.log('Available Courses')
-})
-app.get('/educatorcourses', async (request, response) => {
+
+app.get('/educatorcourses', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const courses = await Course.findAll({
       include: [{ model: Chapter }]
     })
 
-    response.render('educourses', { courses })
+    response.render('educourses', { courses, csrfToken: request.csrfToken() })
   } catch (error) {
     console.log('Error while rendering Educator Courses page')
     return response.status(500).json(error)
   }
 })
-app.get('/educatorcourses/:courseId', async (request, response) => {
+app.get('/courses', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+  response.render('course', {
+    title: 'Create New Course',
+    csrfToken: request.csrfToken()
+  })
+}
+)
+app.get('/educatorcourses/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const courseId = request.params.courseId
     const course = await Course.findByPk(courseId, {
@@ -55,27 +140,29 @@ app.get('/educatorcourses/:courseId', async (request, response) => {
       include: [{ model: Chapter }]
     })
 
-    response.render('educourses', { course, courses })
+    response.render('educourses', { course, courses, csrfToken: request.csrfToken() })
   } catch (error) {
     console.error('Error while rendering Educator Courses page', error)
     return response.status(500).json(error)
   }
 })
 
-app.post('/courses', async (request, response) => {
+app.post('/courses', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   console.log('Creating a course', request.body)
+  const csrfToken = request.csrfToken()
   try {
-    const course = await Course.create({
+    await Course.create({
       courseName: request.body.courseName,
-      courseDescription: request.body.courseDescription
+      courseDescription: request.body.courseDescription,
+      _csrf: csrfToken
     })
-    return response.json(course)
+    return response.redirect('/educatorcourses')
   } catch (error) {
     console.log(error)
     return response.status(422).json(error)
   }
 })
-app.get('/courses/:courseId', async (request, response) => {
+app.get('/courses/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const course = await Course.findByPk(request.params.courseId)
     const chapters = await Chapter.findAll({
@@ -97,7 +184,7 @@ app.get('/courses/:courseId', async (request, response) => {
     return response.status(422).json(error)
   }
 })
-app.delete('/courses/:id', async (request, response) => {
+app.delete('/courses/:id', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   const courseId = request.params.id
 
   console.log('We have to delete a course with ID: ', courseId)
@@ -115,20 +202,30 @@ app.delete('/courses/:id', async (request, response) => {
     await Chapter.destroy({ where: { courseId } })
 
     // Delete the course
-    const status = await Course.remove(courseId)
+    const deletedCourse = await Course.remove(courseId)
 
-    // eslint-disable-next-line no-unneeded-ternary
-    return response.json(status ? true : false)
+    // Check if the course was successfully deleted
+    if (deletedCourse) {
+      return response.json({
+        success: true,
+        message: 'Course deleted successfully'
+      })
+    } else {
+      return response.status(404).json({
+        success: false,
+        message: 'Course not found'
+      })
+    }
   } catch (err) {
     console.error(err)
     return response.status(422).json(err)
   }
 })
 // Chapter Routes
-app.get('/chapter', async (request, response) => {
+app.get('/chapter', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   console.log('Available chapters')
 })
-app.post('/chapter/:courseId', async (request, response) => {
+app.post('/chapter/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const courseId = parseInt(request.params.courseId, 10)
     const course = await Course.findByPk(courseId)
@@ -152,7 +249,7 @@ app.post('/chapter/:courseId', async (request, response) => {
   }
 })
 
-app.get('/chapters/:courseId', async (request, response) => {
+app.get('/chapters/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const courseId = request.params.courseId
     const course = await Course.findByPk(courseId)
@@ -160,13 +257,13 @@ app.get('/chapters/:courseId', async (request, response) => {
       where: { courseId }
     })
 
-    response.render('chapter', { course, chapters })
+    response.render('chapter', { course, chapters, csrfToken: request.csrfToken() })
   } catch (error) {
     console.error('Error while rendering Chapters page', error)
     response.status(500).json({ error: 'Internal Server Error' })
   }
 })
-app.post('/chapter', async (request, response) => {
+app.post('/chapter', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const course = await Course.findByPk(request.body.courseId)
 
@@ -188,10 +285,10 @@ app.post('/chapter', async (request, response) => {
   }
 })
 // Page Routes
-app.get('/page', (request, response) => {
+app.get('/page', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
   console.log('Available pages')
 })
-app.post('/page/:chapterId', async (request, response) => {
+app.post('/page/:chapterId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const chapterId = parseInt(request.params.chapterId, 10)
     const chapter = await Chapter.findByPk(chapterId)
@@ -214,7 +311,7 @@ app.post('/page/:chapterId', async (request, response) => {
     response.status(422).json(error)
   }
 })
-app.get('/pages/:chapterId', async (request, response) => {
+app.get('/pages/:chapterId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const chapterId = request.params.chapterId
     const chapter = await Chapter.findByPk(chapterId)
@@ -222,13 +319,13 @@ app.get('/pages/:chapterId', async (request, response) => {
       where: { chapterId }
     })
 
-    response.render('page', { chapter, pages })
+    response.render('page', { chapter, pages, csrfToken: request.csrfToken() })
   } catch (error) {
     console.error('Error while rendering Pages page', error)
     response.status(500).json({ error: 'Internal Server Error' })
   }
 })
-app.post('/page', async (request, response) => {
+app.post('/page', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   console.log('Creating a page', request.body)
   try {
     const chapter = await Course.findByPk(request.body.chapterId)
@@ -249,7 +346,7 @@ app.post('/page', async (request, response) => {
     return response.status(422).json(error)
   }
 })
-app.put('page/:id/markAsCompleted', (request, response) => {
+app.put('page/:id/markAsCompleted', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
   console.log(
     'We have to update a page as Completed with ID:',
     request.params.id
