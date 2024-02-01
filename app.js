@@ -2,14 +2,17 @@
 const express = require('express')
 var csrf = require('csurf')
 const app = express()
-const { Course, Chapter, Page, User } = require('./models')
+const { Course, Chapter, Page, User, Enrollment } = require('./models')
 const bodyParser = require('body-parser')
 var cookieParser = require('cookie-parser')
 const path = require('path')
+
 const session = require('express-session')
 const passport = require('passport')
 const LocalStrategy = require('passport-local')
 const connectEnsureLogin = require('connect-ensure-login')
+const bcrypt = require('bcrypt')
+const saltRounds = 10
 
 app.set('view engine', 'ejs')
 app.use(bodyParser.json())
@@ -31,8 +34,16 @@ passport.use(new LocalStrategy({
   usernameField: 'email',
   passwordField: 'password'
 }, (username, password, done) => {
-  User.findOne({ where: { email: username, password: password } })
-    .then((user) => {
+  User.findOne({ where: { email: username } })
+    .then(async (user) => {
+      if (!user) {
+        return done(null, false, { message: 'User not found' })
+      }
+      const result = await bcrypt.compare(password, user.password)
+
+      if (!result) {
+        return done(null, false, { message: 'Invalid password' })
+      }
       if (user.role === 'educator') {
         return done(null, user, { role: 'educator' })
       } else if (user.role === 'student') {
@@ -71,6 +82,14 @@ app.get('/signup', (request, response) => {
 app.get('/login', (request, response) => {
   response.render('login', { title: 'Login', csrfToken: request.csrfToken() })
 })
+app.get('/signout', (request, response, next) => {
+  request.logout((err) => {
+    if (err) {
+      return next(err)
+    }
+    response.redirect('/')
+  })
+})
 app.get('/educator', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
   const currentUser = request.user
   response.render('educator', { name: currentUser.name })
@@ -78,11 +97,13 @@ app.get('/educator', connectEnsureLogin.ensureLoggedIn(), (request, response) =>
 
 app.post('/users', async (request, response) => {
   console.log('Name', request.body.name)
+  const hashedPwd = await bcrypt.hash(request.body.password, saltRounds)
+  console.log(hashedPwd)
   try {
     const user = await User.create({
       name: request.body.name,
       email: request.body.email,
-      password: request.body.password,
+      password: hashedPwd,
       role: request.body.role
     })
     console.log('User role', user.role)
@@ -100,34 +121,49 @@ app.post('/users', async (request, response) => {
     response.status(500).json(error)
   }
 })
+
 // Course Routes
 app.get('/course', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
   response.render('course', { csrfToken: request.csrfToken() })
 })
-
+app.post('/session', passport.authenticate('local', { failureRedirect: '/login' }), (request, response) => {
+  if (request.user.role === 'student') {
+    response.redirect('/student')
+  } else if (request.user.role === 'educator') {
+    response.redirect('/educator')
+  } else {
+    response.redirect('/login')
+  }
+})
 app.get('/educatorcourses', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
+    const currentUser = await User.findByPk(request.user.id)
     const courses = await Course.findAll({
+      where: { userId: request.user.id },
       include: [{ model: Chapter }]
     })
 
-    response.render('educourses', { courses, csrfToken: request.csrfToken() })
+    response.render('educourses', { courses, currentUser, csrfToken: request.csrfToken() })
   } catch (error) {
     console.log('Error while rendering Educator Courses page')
     return response.status(500).json(error)
   }
 })
 app.get('/courses', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+  const currentUser = await User.findByPk(request.user.id)
   response.render('course', {
     title: 'Create New Course',
+    currentUser,
     csrfToken: request.csrfToken()
   })
 }
 )
 app.get('/educatorcourses/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
+    const currentUser = request.user.id
     const courseId = request.params.courseId
     const course = await Course.findByPk(courseId, {
+      where: { userId: request.user.id },
       include: [{ model: Chapter }]
     })
 
@@ -140,7 +176,7 @@ app.get('/educatorcourses/:courseId', connectEnsureLogin.ensureLoggedIn(), async
       include: [{ model: Chapter }]
     })
 
-    response.render('educourses', { course, courses, csrfToken: request.csrfToken() })
+    response.render('educourses', { course, courses, currentUser, csrfToken: request.csrfToken() })
   } catch (error) {
     console.error('Error while rendering Educator Courses page', error)
     return response.status(500).json(error)
@@ -154,7 +190,8 @@ app.post('/courses', connectEnsureLogin.ensureLoggedIn(), async (request, respon
     await Course.create({
       courseName: request.body.courseName,
       courseDescription: request.body.courseDescription,
-      _csrf: csrfToken
+      _csrf: csrfToken,
+      userId: request.user.id
     })
     return response.redirect('/educatorcourses')
   } catch (error) {
@@ -284,10 +321,12 @@ app.post('/chapter', connectEnsureLogin.ensureLoggedIn(), async (request, respon
     response.status(422).json(error)
   }
 })
+
 // Page Routes
 app.get('/page', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
   console.log('Available pages')
 })
+
 app.post('/page/:chapterId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const chapterId = parseInt(request.params.chapterId, 10)
@@ -311,6 +350,7 @@ app.post('/page/:chapterId', connectEnsureLogin.ensureLoggedIn(), async (request
     response.status(422).json(error)
   }
 })
+
 app.get('/pages/:chapterId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const chapterId = request.params.chapterId
@@ -325,6 +365,7 @@ app.get('/pages/:chapterId', connectEnsureLogin.ensureLoggedIn(), async (request
     response.status(500).json({ error: 'Internal Server Error' })
   }
 })
+
 app.post('/page', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   console.log('Creating a page', request.body)
   try {
@@ -346,6 +387,110 @@ app.post('/page', connectEnsureLogin.ensureLoggedIn(), async (request, response)
     return response.status(422).json(error)
   }
 })
+
+// Student Routes
+// app.get('/student', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+//   console.log('student logged in successfully')
+//   const availableCourses = await Course.findAll()
+//   // const enrollments = await Enrollment.findAll({ where: { userId: request.user.id } })
+//   const enrolledCoursesIds = enrollments.map((enrollment) => enrollment.courseId)
+//   const enrolledCourses = await Course.findAll({ where: { id: enrolledCoursesIds } })
+//   try {
+//     await response.render('student', {
+//       studentName: request.user.name,
+//       // studentId: request.user.id,
+//       availableCourses,
+//       enrolledCourses
+
+//     })
+//   } catch (error) {
+//     console.log('Error while rendering the Student Homepage')
+//     console.log(error)
+//   }
+// })
+app.get('/student', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
+  let availableCourses
+  let enrolledCourses
+
+  Course.findAll()
+    .then((courses) => {
+      availableCourses = courses
+
+      return Enrollment.findAll({ where: { userId: request.user.id } })
+    })
+    .then((enrollments) => {
+      const enrolledCoursesIds = enrollments.map((enrollment) => enrollment.courseId)
+
+      return Course.findAll({ where: { id: enrolledCoursesIds } })
+    })
+    .then((courses) => {
+      enrolledCourses = courses
+
+      // Render the student view with data
+      response.render('student', {
+        studentName: request.user.name,
+        availableCourses,
+        enrolledCourses
+      })
+    })
+    .catch((error) => {
+      console.error('Error fetching data for student:', error)
+      response.status(500).send('Internal Server Error')
+    })
+})
+
+app.get('/view-courses/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+  try {
+    const courseId = parseInt(request.params.courseId, 10)
+
+    if (isNaN(courseId)) {
+      return response.status(400).send('Invalid course ID')
+    }
+
+    const course = await Course.findByPk(courseId, { include: Chapter })
+    if (!course) {
+      return response.status(404).send('Course not found')
+    }
+
+    const enrollments = await Enrollment.findAll({ where: { userId: request.user.id } })
+    const enrolledCoursesIds = enrollments.map((enrollment) => enrollment.courseId)
+    const enrolledCourses = await Course.findAll({ where: { id: enrolledCoursesIds } })
+
+    response.render('viewcourses', {
+      course,
+      enrolledCourses,
+      csrfToken: request.csrfToken()
+    })
+  } catch (error) {
+    console.error('Error fetching data for student:', error)
+    response.status(500).send('Internal Server Error')
+  }
+})
+
+app.post('/enroll', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+  try {
+    const courseId = request.body.courseId
+    const userId = request.user.id
+
+    // Check if the user is already enrolled in the course
+    const existingEnrollment = await Enrollment.findOne({
+      where: { userId, courseId }
+    })
+
+    if (existingEnrollment) {
+      return response.status(400).send('Already enrolled in this course.')
+    }
+
+    // Create a new enrollment
+    await Enrollment.create({ userId, courseId })
+    console.log('Enrolled Successfully')
+    response.redirect(`/view-courses/${courseId}`)
+  } catch (error) {
+    console.error('Error enrolling in the course', error)
+    response.status(500).send('Internal Server Error')
+  }
+})
+
 app.put('page/:id/markAsCompleted', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
   console.log(
     'We have to update a page as Completed with ID:',

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <title>Document</title>
+</head>
+<body>
+    <%- include('header', { title: 'View Courses' }) %>
+    <a href="/student" class="text-white-600 text-sm font-semibold hover:text-blue-900 border-b-2 py-2 mb-4">Back to Dashboard</a>
+    <a href="/signout" class="text-white-600 text-sm font-semibold hover:text-red-900 border-b-2 py-2 mb-4 float-right">Sign Out</a>
+    <br> <br>
+
+    <div class="grid grid-cols-2 gap-8">
+        <!-- Left side - Course Details -->
+        <div class="col">
+            <h2 class="text-2xl font-bold mb-4"><%= course.courseName %></h2>
+
+            <% if (course.Chapters.length > 0) { %>
+                <ul>
+                    <% course.Chapters.forEach(chapter => { %>
+                        <li class="mb-4">
+                            <h3 class="text-lg font-semibold">
+                                <%= chapter.chapterName %>
+                                <% if (!enrolledCourses.includes(course.id)) { %>
+                                    <!-- Locked symbol/icon here -->
+                                    <span class="text-red-500 ml-2">🔒</span>
+                                <% } %>
+                                <% if (enrolledCourses.includes(course.id)) { %>
+                                    <!-- Unlocked symbol/icon here -->
+                                    <span class="text-green-500 ml-2">🔓</span>
+                                <% } %>
+                            </h3>
+                        </li>
+                    <% }) %>
+                </ul>
+            <% } else { %>
+                <p>No chapters available for this course.</p>
+            <% } %>
+        </div>
+
+        <!-- Right side - Enrollment Card -->
+        <div class="col">
+            <h2 class="text-2xl font-bold mb-4">Enroll in <%= course.courseName %></h2>
+
+            <% if (enrolledCourses.includes(course.id)) { %>
+                <p>You are already enrolled in this course.</p>
+            <% } else { %>
+                <form action="/enroll" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="hidden" name="courseId" value="<%= course.id %>">
+                    <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded-md">Enroll Now</button>
+                </form>
+            <% } %>
+        </div>
+    </div>
+
+    <%- include('footer') %>
+
+</body>
+</html>
