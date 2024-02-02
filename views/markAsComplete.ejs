@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= page.title %></title>
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+</head>
+<body class="bg-gray-100">
+
+    <div class="container mx-auto p-8">
+        <h1 class="text-2xl font-bold mb-4"><%= page.title %></h1>
+        <p class="text-gray-600 mb-8"><%= page.content %></p>
+
+        <!-- Mark as Complete Button -->
+        <form action="/markAsComplete" method="post">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="courseId" value="<%= course.id %>">
+            <input type="hidden" name="chapterId" value="<%= chapter.id %>">
+            <input type="hidden" name="pageId" value="<%= page.id %>">
+            <button id="markCompleteBtn" onclick="markAsComplete()" class="bg-blue-500 text-white px-4 py-2 rounded focus:outline-none">
+                Mark as Complete
+            </button>
+        </form>
+           
+
+        <!-- Next Page Button -->
+        <button id="nextPageBtn" onclick="goToNextPage()" class="bg-green-500 text-white px-4 py-2 rounded ml-4 focus:outline-none">
+            Next Page
+        </button>
+    </div>
+
+    <script>
+        function markAsComplete() {
+            // Disable the button and change its text
+            document.getElementById('markCompleteBtn').disabled = true;
+            document.getElementById('markCompleteBtn').innerText = 'Marked as Complete';
+        }
+
+        function goToNextPage() {
+            // Implement logic to navigate to the next page
+            // For demonstration purposes, we'll simply show an alert
+            alert('Navigating to the next page');
+        }
+    </script>
+
+</body>
+</html>

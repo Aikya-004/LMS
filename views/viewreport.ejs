@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= course.name %> Enrollment Details</title>
+    <!-- Include Tailwind CSS styles -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #edf2f7; /* Set background color to a light grayish-blue */
+        }
+
+        .dashboard-link {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-left: 6px;
+            margin-top: 30px;
+        }
+
+        .dashboard-link img {
+            width: 35px;
+            height: 35px;
+            margin-right: 10px;
+        }
+
+        .go-to-dashboard-btn {
+            background-color: #1a202c; /* Dark blue background color */
+            color: #ffffff; /* White text color */
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .go-to-dashboard-btn:hover {
+            background-color: #2d3748; /* Darker blue on hover */
+        }
+
+        .container {
+            margin: 8px auto;
+            padding: 8px;
+            max-width: 50%; /* Adjusted to 50% for better responsiveness */
+            background-color: #ffffff; /* White container background */
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Added a subtle box shadow */
+        }
+
+        .course-title {
+            color: #1a202c; /* Dark blue text color */
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .description, .created-by, .enrollment-count {
+            font-size: 1.25rem;
+            margin-bottom: 15px;
+        }
+
+        .enrollment-percentage {
+            background-color: #90cdf4; /* Light blue background color */
+            margin-left: 10px;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Added a subtle box shadow */
+        }
+
+        .percentage-text {
+            color: #2c5282; /* Darker blue text color */
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .enrollment-table {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-header {
+            background-color: #cbd5e0; /* Light gray background color */
+            padding: 10px;
+            font-weight: 600;
+        }
+
+        .table-row:nth-child(even) {
+            background-color: #f7fafc; /* Even rows have a lighter background color */
+        }
+
+        .table-cell {
+            padding: 10px;
+            border: 1px solid #cbd5e0; /* Light gray border */
+        }
+    </style>
+</head>
+
+<body>
+    <a href="/educator" class="dashboard-link">
+        <img src="https://cdn-icons-png.flaticon.com/512/7518/7518214.png" alt="view course">
+        <div class="go-to-dashboard-btn">Go to Dashboard</div>
+    </a>
+    <div class="container">
+        <h1 class="course-title"><%= course.name %>: Enrollment Reports</h1>
+        <p class="description"><strong>Description:</strong> <%= course.description %></p>
+        <p class="created-by"><strong>Created By:</strong> <%= createdBy %></p>
+        <p class="enrollment-count"><strong>Number of Enrollments:</strong> <%= enrollmentCnt %></p>
+        <div class="enrollment-percentage">
+            <h2 class="percentage-text">Enrollment Percentage of <%= course.name %></h2>
+            <div class="relative inline-block w-20 h-20">
+                <div class="w-23 h-23 absolute inset-0 rounded-full bg-green-100 border-4 border-green-500">
+                    <div class="flex items-center justify-center h-full">
+                        <span class="text-gray-400 font-bold text-xl"><%= percentage %>%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="enrollment-table">
+            <h2 class="text-xl font-semibold mb-2">Enrollments:</h2>
+            <table class="table">
+                <thead>
+                    <tr class="table-header">
+                        <th class="table-cell">S.no</th>
+                        <th class="table-cell">Name of student</th>
+                        <th class="table-cell">Email</th>
+                        <th class="table-cell">Date of Enrollment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% for(var i=0; i<enrolledstudents.length; i++) { %>
+                        <tr class="table-row">
+                            <td class="table-cell"><%= i + 1 %></td>
+                            <td class="table-cell"><%= enrolledstudents[i].name %></td>
+                            <td class="table-cell"><%= enrolledstudents[i].email %></td>
+                            <td class="table-cell"><%= enrollments[i].createdAt.toDateString() %></td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>

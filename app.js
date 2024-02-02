@@ -90,9 +90,21 @@ app.get('/signout', (request, response, next) => {
     response.redirect('/')
   })
 })
-app.get('/educator', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
-  const currentUser = request.user
-  response.render('educator', { name: currentUser.name })
+app.get('/educator', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+  try {
+    const currentUser = request.user
+    // Fetch the list of available courses from your database (replace Course.findAll with your actual query)
+    const availableCourses = await Course.findAll()
+
+    // Fetch a specific course (for example, the first course)
+    const course = availableCourses.length > 0 ? availableCourses[0] : null
+
+    response.render('educator', { name: currentUser.name, availableCourses, course })
+  } catch (error) {
+    console.log(error)
+    // Handle the error appropriately (e.g., render an error page or redirect to another page)
+    response.status(500).send('Internal Server Error')
+  }
 })
 
 app.post('/users', async (request, response) => {
@@ -487,6 +499,7 @@ app.get('/course/:courseId/chapter/:chapterId', async (request, response) => {
     const courseId = parseInt(request.params.courseId, 10)
     const course = await Course.findByPk(courseId)
     const chapterId = parseInt(request.params.chapterId, 10)
+    const chapter = await Chapter.findByPk(chapterId)
 
     if (isNaN(courseId) || isNaN(chapterId)) {
       return response.status(400).send('Invalid course or chapter ID')
@@ -508,7 +521,8 @@ app.get('/course/:courseId/chapter/:chapterId', async (request, response) => {
       selectedCourse,
       selectedChapter,
       pages,
-      course
+      course,
+      chapter
     })
   } catch (error) {
     console.error('Error fetching data for course/chapter:', error)
@@ -538,13 +552,91 @@ app.post('/enroll', connectEnsureLogin.ensureLoggedIn(), async (request, respons
     response.status(500).send('Internal Server Error')
   }
 })
+app.get('/markAsComplete/:courseId/:chapterId/:pageId', async (request, response) => {
+  const courseId = request.params.courseId
+  const course = await Course.findByPk(courseId)
+  const chapterId = request.params.chapterId
+  const chapter = await Chapter.findByPk(chapterId)
+  const pageId = request.params.pageId
 
-app.put('page/:id/markAsCompleted', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
-  console.log(
-    'We have to update a page as Completed with ID:',
-    request.params.id
-  )
+  try {
+    // Find the page based on chapterId
+    const page = await Page.findOne({
+      where: { chapterId }
+    })
+
+    if (!page) {
+      return response.status(404).send('Page not found')
+    }
+
+    response.render('markAsComplete', { page, course, chapter, csrfToken: request.csrfToken() })
+  } catch (error) {
+    console.error('Error retrieving page:', error)
+    response.status(500).send('Internal Server Error')
+  }
 })
+
+app.post('/markAsComplete', connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+  try {
+    // Check if there is an existing enrollment record
+    const userId = req.user.id
+    const courseId = req.body.courseId // Assuming courseId is in the request body
+    const chapterId = req.body.chapterId // Assuming chapterId is in the request body
+    var pageId = parseInt(req.body.pageId) + 1 // Assuming pageId is in the request body
+
+    let enrollment = await Enrollment.findOne({
+      where: { userId, courseId, chapterId, pageId }
+    })
+
+    // If there is no record, create a new enrollment
+    if (!enrollment) {
+      enrollment = await Enrollment.create({
+        userId,
+        courseId,
+        chapterId,
+        pageId,
+        complete: true
+      })
+    } else {
+      // If there is a record, update the complete status to true
+      enrollment.complete = true
+      await enrollment.save()
+    }
+
+    // Store the completion status in the session
+    req.session.completedPages = req.session.completedPages || []
+    req.session.completedPages.push(pageId)
+
+    res.redirect(`/markAsComplete/${courseId}/${chapterId}/${pageId}`)
+  } catch (error) {
+    console.error('Error marking page as complete:', error)
+    res.status(500).send('Internal Server Error')
+  }
+})
+app.get('/courseEnrollments/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+  try {
+    const totalEnrollments = await Enrollment.findAll()
+    const totalEnrollmentsCnt = totalEnrollments.length
+    const enrollments = await Enrollment.findAll({ where: { courseId: request.params.courseId } })
+    const enrollmentUserIds = enrollments.map((enrollment) => enrollment.userId)
+    const enrollmentCnt = enrollments.length
+    const createdBy = request.user.name
+    const course = await Course.findByPk(request.params.courseId)
+    const enrolledstudents = await User.findAll({ where: { id: enrollmentUserIds } })
+    const percentage = (enrollmentCnt / totalEnrollmentsCnt) * 100 || 0
+    await response.render('viewreport', {
+      course,
+      enrolledstudents,
+      createdBy,
+      enrollmentCnt,
+      enrollments,
+      percentage: percentage.toFixed(1)
+    })
+  } catch (error) {
+    console.log(error)
+  }
+})
+
 app.get('/changePassword', connectEnsureLogin.ensureLoggedIn(), (request, reponse) => {
   const currentUser = request.user
 

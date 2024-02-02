@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
       Page.belongsTo(models.Chapter, {
         foreignKey: "chapterId",
       });
+      Page.belongsToMany(models.User, {
+        through: models.Enrollment,
+        foreignKey: "pageId",
+      });
     }
   }
   Page.init(

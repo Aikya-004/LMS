@@ -11,6 +11,20 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      
+    }
+    static completedItems(userId) {
+      return this.findAll({
+        where: {
+          completed: true,
+          userId,
+        },
+      
+        order: [["id", "ASC"]],
+      });
+    }
+    setCompletionStatus(value) {
+      return this.update({ completed: value });
     }
   }
   Enrollment.init({
