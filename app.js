@@ -466,7 +466,52 @@ app.get('/view-courses/:courseId', connectEnsureLogin.ensureLoggedIn(), async (r
     response.status(500).send('Internal Server Error')
   }
 })
+app.get('/view-chapters/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+  try {
+    const courseId = request.params.courseId
+    const course = await Course.findByPk(courseId)
+    const chapters = await Chapter.findAll({
+      where: { courseId }
+    })
 
+    response.render('viewchapters', { selectedCourse: course, chapters, selectedChapter: null, pages: [], csrfToken: request.csrfToken() })
+  } catch (error) {
+    console.error('Error while rendering View Chapters page', error)
+    response.status(500).json({ error: 'Internal Server Error' })
+  }
+})
+app.get('/course/:courseId/chapter/:chapterId', async (request, response) => {
+  try {
+    const courseId = parseInt(request.params.courseId, 10)
+
+    const chapterId = parseInt(request.params.chapterId, 10)
+
+    if (isNaN(courseId) || isNaN(chapterId)) {
+      return response.status(400).send('Invalid course or chapter ID')
+    }
+
+    const selectedCourse = await Course.findByPk(courseId, { include: Chapter })
+    if (!selectedCourse) {
+      return response.status(404).send('Course not found')
+    }
+
+    const selectedChapter = await Chapter.findByPk(chapterId, { include: Page })
+    if (!selectedChapter || selectedChapter.courseId !== courseId) {
+      return response.status(404).send('Chapter not found')
+    }
+
+    const pages = selectedChapter.Pages || []
+
+    response.render('viewpages', {
+      selectedCourse,
+      selectedChapter,
+      pages
+    })
+  } catch (error) {
+    console.error('Error fetching data for course/chapter:', error)
+    response.status(500).send('Internal Server Error')
+  }
+})
 app.post('/enroll', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const courseId = request.body.courseId
@@ -484,7 +529,7 @@ app.post('/enroll', connectEnsureLogin.ensureLoggedIn(), async (request, respons
     // Create a new enrollment
     await Enrollment.create({ userId, courseId })
     console.log('Enrolled Successfully')
-    response.redirect(`/view-courses/${courseId}`)
+    response.redirect('/student')
   } catch (error) {
     console.error('Error enrolling in the course', error)
     response.status(500).send('Internal Server Error')

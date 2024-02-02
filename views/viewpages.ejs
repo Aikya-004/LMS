@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Pages</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <%- include('header', { title: 'View Pages' }) %>
+    <div class="container mx-auto p-6">
+        <% if (selectedChapter) { %>
+            <h3 class="text-2xl font-bold mt-6 py-2">Pages for <%= selectedChapter.chapterName %></h3>
+
+            <% if (pages.length === 0) { %>
+                <p class="text-gray-600">No pages available for this chapter.</p>
+            <% } else { %>
+                <ul class="list-disc pl-6">
+                    <% pages.forEach(page => { %>
+                        <li class="mb-2 text-gray-600"><%= page.title %></li>
+                        
+                    <% }) %>
+                </ul>
+            <% } %>
+        <% } %>
+    </div>
+    <%- include('footer') %>
+</body>
+
+</html>

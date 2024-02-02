@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Chapters</title>
+    <!-- Add Tailwind CSS styles -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <%- include('header', { title: 'View Chapters' }) %>
+<% if (selectedCourse) { %>
+    <div class="container mx-auto my-8">
+        <h2 class="text-3xl font-bold mb-4">Chapters for <%= selectedCourse.courseName %></h2>
+
+        <% if (chapters.length === 0) { %>
+            <p class="text-gray-600">No chapters available for this course.</p>
+        <% } else { %>
+            <ul class="list-disc pl-6">
+                <% chapters.forEach(chapter => { %>
+                    <li class="mb-2">
+                        <a href="/course/<%= selectedCourse.id %>/chapter/<%= chapter.id %>" class="text-blue-500 hover:underline">
+                            <%= chapter.chapterName %>
+                        </a>
+                      
+                    </li>
+                <% }) %>
+            </ul>
+        <% } %>
+
+<% } else { %>
+    <p class="text-gray-600 text-center mt-8">No course selected.</p>
+<% } %>
+</div>
+<%- include('footer') %>
+</body>
+</html>
