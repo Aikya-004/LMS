@@ -9,9 +9,12 @@
 </head>
 <body class="bg-gray-100">
     <%- include('header', { title: 'View Chapters' }) %>
+    <a href="/student" class="text-white-600 text-sm font-semibold hover:text-red-900 border-b-2 py-2 mb-4 float-left">Back to Courses</a>
+    <a href="/signout" class="text-white-600 text-sm font-semibold hover:text-red-900 border-b-2 py-2 mb-4 float-right">Sign Out</a>
+    <br> <br>
 <% if (selectedCourse) { %>
     <div class="container mx-auto my-8">
-        <h2 class="text-3xl font-bold mb-4">Chapters for <%= selectedCourse.courseName %></h2>
+        <h2 class="text-3xl font-bold mb-4 ">Chapters for <%= selectedCourse.courseName %></h2>
 
         <% if (chapters.length === 0) { %>
             <p class="text-gray-600">No chapters available for this course.</p>
@@ -19,7 +22,7 @@
             <ul class="list-disc pl-6">
                 <% chapters.forEach(chapter => { %>
                     <li class="mb-2">
-                        <a href="/course/<%= selectedCourse.id %>/chapter/<%= chapter.id %>" class="text-blue-500 hover:underline">
+                        <a href="/course/<%= selectedCourse.id %>/chapter/<%= chapter.id %>" class="text-gray-600 hover:text-blue-500">
                             <%= chapter.chapterName %>
                         </a>
                       

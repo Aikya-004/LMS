@@ -428,9 +428,11 @@ app.get('/student', connectEnsureLogin.ensureLoggedIn(), (request, response) => 
 
       // Render the student view with data
       response.render('student', {
+        title: 'Student Dashboard',
         studentName: request.user.name,
         availableCourses,
-        enrolledCourses
+        enrolledCourses,
+        csrfToken: request.csrfToken()
       })
     })
     .catch((error) => {
@@ -483,7 +485,7 @@ app.get('/view-chapters/:courseId', connectEnsureLogin.ensureLoggedIn(), async (
 app.get('/course/:courseId/chapter/:chapterId', async (request, response) => {
   try {
     const courseId = parseInt(request.params.courseId, 10)
-
+    const course = await Course.findByPk(courseId)
     const chapterId = parseInt(request.params.chapterId, 10)
 
     if (isNaN(courseId) || isNaN(chapterId)) {
@@ -505,7 +507,8 @@ app.get('/course/:courseId/chapter/:chapterId', async (request, response) => {
     response.render('viewpages', {
       selectedCourse,
       selectedChapter,
-      pages
+      pages,
+      course
     })
   } catch (error) {
     console.error('Error fetching data for course/chapter:', error)
@@ -541,6 +544,41 @@ app.put('page/:id/markAsCompleted', connectEnsureLogin.ensureLoggedIn(), (reques
     'We have to update a page as Completed with ID:',
     request.params.id
   )
+})
+app.get('/changePassword', connectEnsureLogin.ensureLoggedIn(), (request, reponse) => {
+  const currentUser = request.user
+
+  reponse.render('changepassword', {
+    title: 'Change Password',
+    name: currentUser.name,
+    csrfToken: request.csrfToken()
+  })
+})
+app.post('/changePassword', async (request, response) => {
+  const userEmail = request.body.email
+  const newPassword = request.body.password
+
+  try {
+    // Find the user by email
+    const user = await User.findOne({ where: { email: userEmail } })
+
+    if (!user) {
+      return response.redirect('/resetpassword')
+    }
+
+    // Hash the new password
+    const hashedPwd = await bcrypt.hash(newPassword, saltRounds)
+
+    // Update the user's password in the database
+    await user.update({ password: hashedPwd })
+
+    // Redirect to a success page or login page
+    response.render('passwordsuccess')
+  } catch (error) {
+    console.log(error)
+    // request.flash('error', 'Error updating the password.')
+    return response.redirect('/changePassword')
+  }
 })
 
 module.exports = app

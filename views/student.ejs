@@ -1,66 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <title>Student Dashboard</title>
 </head>
+
 <body>
 
     <%- include('header', { title: 'Student Dashboard' }) %>
-<!-- Change Password Button -->
-<button class="bg-yellow-500 text-white px-4 py-2 rounded-md mt-4" onclick="changePassword()">Change Password</button>
-<a href="/signout" class="text-white-600 text-sm font-semibold hover:text-red-900 border-b-2 py-2 mb-4 float-right">Sign Out</a>
-<br> <br>
+    <!-- Change Password Button -->
+    <button class="bg-yellow-500 text-white px-4 py-2 rounded-md mt-4"> <a href="/changePassword">Change Password</a></button>
+    <a href="/signout" class="text-white-600 text-sm font-semibold hover:text-red-900 border-b-2 py-2 mb-4 float-right">Sign Out</a>
+    <br> <br>
 
-<!-- Welcome Message -->
-<h1 class="text-3xl font-bold mb-2">Welcome, <%= studentName %>!</h1>
+    <!-- Welcome Message -->
+    <h1 class="text-3xl font-bold mb-2">Welcome, <%= studentName %>!</h1>
 
-<div class="grid grid-cols-2 gap-8">
-    <!-- Left side - Enrolled courses -->
-    <div class="col">
-        <h2 class="text-2xl font-bold mb-4">Enrolled Courses</h2>
+    <div class="grid grid-cols-2 gap-8">
+        <!-- Left side - Enrolled courses -->
+        <div class="col">
+            <h2 class="text-2xl font-bold mb-4">Enrolled Courses</h2>
 
-        <% if (enrolledCourses.length > 0) { %>
-            <ul>
-                <% enrolledCourses.forEach(course => { %>
-                    <li class="mb-4">
-                        <h3 class="text-lg font-semibold"><a href="/view-chapters/<%= course.id %>"><%= course.courseName %></a></h3>
-                        <p><%= course.courseDescription %></p>
-                    </li>
-                <% }) %>
-            </ul>
-        <% } else { %>
-            <p>No courses enrolled yet.</p>
-        <% } %>
+            <% if (enrolledCourses.length > 0) { %>
+                <ul>
+                    <% enrolledCourses.forEach(course => { %>
+                        <li class="mb-4">
+                            <h3 class="text-lg font-semibold hover:text-blue-500"><a href="/view-chapters/<%= course.id %>"><%= course.courseName %></a></h3>
+                            <p><%= course.courseDescription %></p>
+                        </li>
+                    <% }) %>
+                </ul>
+            <% } else { %>
+                <p>No courses enrolled yet.</p>
+            <% } %>
+        </div>
+
+        <!-- Right side - Available courses -->
+        <div class="col">
+            <h2 class="text-2xl font-bold mb-4">Available Courses</h2>
+
+            <% if (availableCourses.length > 0) { %>
+                <ul>
+                    <% availableCourses.forEach(course => { %>
+                        <li class="mb-4">
+                            <h3 class="text-lg font-semibold"><%= course.courseName %></h3>
+                            <p><%= course.courseDescription %></p>
+                            <div class="flex space-x-2">
+                                <button class="bg-blue-500 text-white px-4 py-2 rounded-md"> <a href="/view-courses/<%= course.id %>">View Course Details</a></button>
+                                <form action="/enroll" method="POST">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <input type="hidden" name="courseId" value="<%= course.id %>">
+                                    <button class="bg-green-500 text-white px-4 py-2 rounded-md">Enroll</button>
+                                </form>
+                            </div>
+                        </li>
+                    <% }) %>
+                </ul>
+            <% } else { %>
+                <p>No courses available at the moment.</p>
+            <% } %>
+        </div>
     </div>
 
-    <!-- Right side - Available courses -->
-    <div class="col">
-        <h2 class="text-2xl font-bold mb-4">Available Courses</h2>
-
-        <% if (availableCourses.length > 0) { %>
-            <ul>
-                <% availableCourses.forEach(course => { %>
-                    <li class="mb-4">
-                        <h3 class="text-lg font-semibold"><%= course.courseName %></h3>
-                        <p><%= course.courseDescription %></p>
-                        <button class="bg-blue-500 text-white px-4 py-2 rounded-md mr-2" > <a href="/view-courses/<%= course.id %>">View Course Details</a></button>
-                        <button class="bg-green-500 text-white px-4 py-2 rounded-md" > <a href="/enroll"></a>Enroll</button>
-                    </li>
-                <% }) %>
-            </ul>
-        <% } else { %>
-            <p>No courses available at the moment.</p>
-        <% } %>
-    </div>
-</div>
-
-
-
-<%- include('footer') %>
-
-
+    <%- include('footer') %>
 
 </body>
+
 </html>
