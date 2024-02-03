@@ -550,7 +550,7 @@ app.get('/page/:pageId', connectEnsureLogin.ensureLoggedIn(), async (request, re
   }
 })
 
-app.put('/updatePageStatus/:pageId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+app.put('/updatePageStatus/:courseId/:pageId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const pageId = request.params.pageId
     const page = await Page.findByPk(pageId)
@@ -561,11 +561,13 @@ app.put('/updatePageStatus/:pageId', connectEnsureLogin.ensureLoggedIn(), async 
 
     const userId = request.user.id
     const courseId = request.params.courseId
+    const newCompleted = request.body.completed // Retrieve newCompleted from the request body
 
     // Find or create an enrollment record for the user, course, and page
     let enrollment = await Enrollment.findOne({
       where: { userId, courseId, pageId }
     })
+
     if (!enrollment) {
       // Create an enrollment record if it doesn't exist
       enrollment = await Enrollment.create({
@@ -580,13 +582,12 @@ app.put('/updatePageStatus/:pageId', connectEnsureLogin.ensureLoggedIn(), async 
       await enrollment.save()
     }
 
-    return response.json({ message: 'Page status updated successfully' })
+    return response.status(200).json('Page status updated')
   } catch (error) {
-    console.log(error)
+    console.error(error)
     return response.status(500).json(error)
   }
 })
-
 app.get('/courseEnrollments/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const totalEnrollments = await Enrollment.findAll()
