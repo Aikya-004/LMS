@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= course.name %> Enrollment Details</title>
+    <title><%= course.courseName %> Enrollment Details</title>
     <!-- Include Tailwind CSS styles -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <style>
@@ -99,17 +99,18 @@
 </head>
 
 <body>
+  
     <a href="/educator" class="dashboard-link">
         <img src="https://cdn-icons-png.flaticon.com/512/7518/7518214.png" alt="view course">
         <div class="go-to-dashboard-btn">Go to Dashboard</div>
     </a>
     <div class="container">
         <h1 class="course-title"><%= course.name %>: Enrollment Reports</h1>
-        <p class="description"><strong>Description:</strong> <%= course.description %></p>
+        <p class="description"><strong>Description:</strong> <%= course.courseDescription %></p>
         <p class="created-by"><strong>Created By:</strong> <%= createdBy %></p>
         <p class="enrollment-count"><strong>Number of Enrollments:</strong> <%= enrollmentCnt %></p>
         <div class="enrollment-percentage">
-            <h2 class="percentage-text">Enrollment Percentage of <%= course.name %></h2>
+            <h2 class="percentage-text">Enrollment Percentage of <%= course.courseName %></h2>
             <div class="relative inline-block w-20 h-20">
                 <div class="w-23 h-23 absolute inset-0 rounded-full bg-green-100 border-4 border-green-500">
                     <div class="flex items-center justify-center h-full">

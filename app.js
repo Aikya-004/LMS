@@ -235,7 +235,7 @@ app.get('/courses/:courseId', connectEnsureLogin.ensureLoggedIn(), async (reques
 })
 app.delete('/courses/:id', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   const courseId = request.params.id
-
+  const loggedInUser = request.user.id
   console.log('We have to delete a course with ID: ', courseId)
 
   try {
@@ -244,32 +244,24 @@ app.delete('/courses/:id', connectEnsureLogin.ensureLoggedIn(), async (request, 
 
     // Delete all pages associated with the chapters
     for (const chapter of chapters) {
+      console.log(`Deleting pages for chapter ${chapter.id}`)
       await Page.destroy({ where: { chapterId: chapter.id } })
     }
 
     // Delete all chapters associated with the course
     await Chapter.destroy({ where: { courseId } })
 
-    // Delete the course
-    const deletedCourse = await Course.remove(courseId)
-
     // Check if the course was successfully deleted
-    if (deletedCourse) {
-      return response.json({
-        success: true,
-        message: 'Course deleted successfully'
-      })
-    } else {
-      return response.status(404).json({
-        success: false,
-        message: 'Course not found'
-      })
-    }
+    const status = await Course.remove(courseId, loggedInUser)
+
+    // eslint-disable-next-line no-unneeded-ternary
+    return response.json(status ? true : false)
   } catch (err) {
     console.error(err)
-    return response.status(422).json(err)
+    return response.status(500).json({ success: false, message: 'Internal server error' })
   }
 })
+
 // Chapter Routes
 app.get('/chapter', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   console.log('Available chapters')
@@ -400,26 +392,6 @@ app.post('/page', connectEnsureLogin.ensureLoggedIn(), async (request, response)
   }
 })
 
-// Student Routes
-// app.get('/student', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
-//   console.log('student logged in successfully')
-//   const availableCourses = await Course.findAll()
-//   // const enrollments = await Enrollment.findAll({ where: { userId: request.user.id } })
-//   const enrolledCoursesIds = enrollments.map((enrollment) => enrollment.courseId)
-//   const enrolledCourses = await Course.findAll({ where: { id: enrolledCoursesIds } })
-//   try {
-//     await response.render('student', {
-//       studentName: request.user.name,
-//       // studentId: request.user.id,
-//       availableCourses,
-//       enrolledCourses
-
-//     })
-//   } catch (error) {
-//     console.log('Error while rendering the Student Homepage')
-//     console.log(error)
-//   }
-// })
 app.get('/student', connectEnsureLogin.ensureLoggedIn(), (request, response) => {
   let availableCourses
   let enrolledCourses
@@ -552,67 +524,69 @@ app.post('/enroll', connectEnsureLogin.ensureLoggedIn(), async (request, respons
     response.status(500).send('Internal Server Error')
   }
 })
-app.get('/markAsComplete/:courseId/:chapterId/:pageId', async (request, response) => {
-  const courseId = request.params.courseId
-  const course = await Course.findByPk(courseId)
-  const chapterId = request.params.chapterId
-  const chapter = await Chapter.findByPk(chapterId)
-  const pageId = request.params.pageId
-
+app.get('/page/:pageId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
-    // Find the page based on chapterId
-    const page = await Page.findOne({
-      where: { chapterId }
-    })
+    const userId = request.user.id
+    const courseId = request.params.courseId
+    const pageId = request.params.pageId
+
+    // Assuming you have a method to retrieve page details based on the pageId
+    const page = await Page.findByPk(pageId)
 
     if (!page) {
       return response.status(404).send('Page not found')
     }
 
-    response.render('markAsComplete', { page, course, chapter, csrfToken: request.csrfToken() })
+    // Render the markAsComplete.ejs file with the page details
+    response.render('markAsComplete', {
+      page,
+      courseId,
+      userId,
+      csrfToken: request.csrfToken()
+    })
   } catch (error) {
     console.error('Error retrieving page:', error)
     response.status(500).send('Internal Server Error')
   }
 })
 
-app.post('/markAsComplete', connectEnsureLogin.ensureLoggedIn(), async (req, res) => {
+app.put('/updatePageStatus/:pageId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
-    // Check if there is an existing enrollment record
-    const userId = req.user.id
-    const courseId = req.body.courseId // Assuming courseId is in the request body
-    const chapterId = req.body.chapterId // Assuming chapterId is in the request body
-    var pageId = parseInt(req.body.pageId) + 1 // Assuming pageId is in the request body
+    const pageId = request.params.pageId
+    const page = await Page.findByPk(pageId)
 
+    if (!page) {
+      return response.status(404).send('Page not found')
+    }
+
+    const userId = request.user.id
+    const courseId = request.params.courseId
+
+    // Find or create an enrollment record for the user, course, and page
     let enrollment = await Enrollment.findOne({
-      where: { userId, courseId, chapterId, pageId }
+      where: { userId, courseId, pageId }
     })
-
-    // If there is no record, create a new enrollment
     if (!enrollment) {
+      // Create an enrollment record if it doesn't exist
       enrollment = await Enrollment.create({
         userId,
         courseId,
-        chapterId,
         pageId,
-        complete: true
+        completed: newCompleted
       })
     } else {
-      // If there is a record, update the complete status to true
-      enrollment.complete = true
+      // Update the completion status of the existing enrollment record
+      enrollment.completed = newCompleted
       await enrollment.save()
     }
 
-    // Store the completion status in the session
-    req.session.completedPages = req.session.completedPages || []
-    req.session.completedPages.push(pageId)
-
-    res.redirect(`/markAsComplete/${courseId}/${chapterId}/${pageId}`)
+    return response.json({ message: 'Page status updated successfully' })
   } catch (error) {
-    console.error('Error marking page as complete:', error)
-    res.status(500).send('Internal Server Error')
+    console.log(error)
+    return response.status(500).json(error)
   }
 })
+
 app.get('/courseEnrollments/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const totalEnrollments = await Enrollment.findAll()

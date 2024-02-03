@@ -74,16 +74,19 @@
 
 <%- include('footer') %>
 <script>
-   var token = document.querySelector('meta[name="csrf-token"]').getAttribute("content");
-
+   
+   var token = document.querySelector('meta[name="csrf-token"]').getAttribute("content")
     async function deleteCourse(courseId) {
     try {
         const response = await fetch(`/courses/${courseId}`, {
-        method: "DELETE",
+        method: "delete",
         headers: {
             "Content-Type": "application/json",
-            "_csrf": token,
+
         },
+        body: JSON.stringify({
+                    "_csrf": token
+                })
         });
 
         if (response.ok) {
