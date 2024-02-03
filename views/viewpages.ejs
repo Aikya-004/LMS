@@ -22,7 +22,7 @@
             <% } else { %>
                 <ul class="list-disc pl-6">
                     <% pages.forEach(page => { %>
-                        <li class="mb-2 text-gray-600 hover:text-blue-900"><a href="/page/<%= page.id %>"><%= page.title %></a></li>
+                        <li class="mb-2 text-gray-600 hover:text-blue-900"><a href="/view-chapter/<%= chapter.id %>/viewpage"><%= page.title %></a></li>
                         
                     <% }) %>
                 </ul>

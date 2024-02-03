@@ -41,18 +41,23 @@ describe('Lms Test suite', () => {
   test('Sign in as a user', async () => {
     await login(agent, 'uses.a@test.com', 'usesa@004')
   })
-  test('View courses created by a teacher', async () => {
+  test('View courses created by a educator', async () => {
     await login(agent, 'uses.a@test.com', 'usesa@004')
     const teaMyCoursesRes = await agent.get('/educatorcourses')
     expect(teaMyCoursesRes.statusCode).toBe(200)
   })
-  test("View teacher's dashboard", async () => {
+  test("View educator's dashboard", async () => {
     await login(agent, 'uses.a@test.com', 'usesa@004')
 
     const teacherDashboardRes = await agent.get('/educator')
     expect(teacherDashboardRes.statusCode).toBe(200)
   })
+  test("View student's dashboard", async () => {
+    await login(agent, 'uses.a@test.com', 'usesa@004')
 
+    const teacherDashboardRes = await agent.get('/student')
+    expect(teacherDashboardRes.statusCode).toBe(200)
+  })
   test('Change Password', async () => {
     await login(agent, 'uses.a@test.com', 'usesa@004')
 
@@ -93,6 +98,16 @@ describe('Lms Test suite', () => {
     })
 
     expect(createCoursesRes.statusCode).toBe(302)
+  })
+  test('Sign out the user', async () => {
+    res = await agent.get('/signout')
+    expect(res.statusCode).toBe(302)
+
+    res = await agent.get('/educator')
+    expect(res.statusCode).toBe(302)
+
+    res = await agent.get('/student')
+    expect(res.statusCode).toBe(302)
   })
   // test('Create a new chapter', async () => {
   //   let csrfToken = extractCsrfToken(await agent.get('/courses'))

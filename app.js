@@ -549,45 +549,76 @@ app.get('/page/:pageId', connectEnsureLogin.ensureLoggedIn(), async (request, re
     response.status(500).send('Internal Server Error')
   }
 })
+app.get(
+  '/view-chapter/:id/viewpage', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+    const chapterId = request.params.id
+    const chapter = await Chapter.findByPk(chapterId)
+    const courseId = chapter.courseId
+    const course = await Course.findByPk(courseId)
+    const userOfCourseId = course.userId
+    const userOfCourse = await User.findByPk(userOfCourseId)
+    const existingEnrollments = await Enrollment.findAll()
 
-app.put('/updatePageStatus/:courseId/:pageId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
+    const currentUserId = request.user.id
+    const currentUser = await User.findByPk(parseInt((currentUserId), 10))
+
+    const currentPageIndex = request.query.currentPageIndex || 0 // Get currentPageIndex from the query parameter or set it to 0 by default
+
+    const pages = await Page.findAll({ where: { chapterId } })
+
+    response.render('markAsComplete', {
+      title: 'Pages',
+      chapterId,
+      chapter,
+      pages,
+      course,
+      userOfCourse,
+      enrols: existingEnrollments,
+      currentUser,
+      currentPageIndex,
+      csrfToken: request.csrfToken()
+    })
+  }
+)
+
+app.post('/mark-as-complete', async (request, response) => {
   try {
-    const pageId = request.params.pageId
-    const page = await Page.findByPk(pageId)
+    const userId = request.body.userId
+    const courseId = request.body.courseId
+    const chapterId = request.body.chapterId
+    var pageId = parseInt(request.body.pageId) + 1
 
-    if (!page) {
-      return response.status(404).send('Page not found')
-    }
-
-    const userId = request.user.id
-    const courseId = request.params.courseId
-    const newCompleted = request.body.completed // Retrieve newCompleted from the request body
-
-    // Find or create an enrollment record for the user, course, and page
-    let enrollment = await Enrollment.findOne({
-      where: { userId, courseId, pageId }
+    console.log(userId)
+    console.log(courseId)
+    console.log(chapterId)
+    console.log(pageId)
+    await Enrollment.create({
+      userId,
+      courseId,
+      chapterId,
+      pageId,
+      completed: true
     })
 
-    if (!enrollment) {
-      // Create an enrollment record if it doesn't exist
-      enrollment = await Enrollment.create({
-        userId,
-        courseId,
-        pageId,
-        completed: newCompleted
-      })
+    if (pageId === 1) {
+      response.redirect(
+        `/view-chapter/${chapterId}/viewpage?currentUserId=${userId}`
+      )
     } else {
-      // Update the completion status of the existing enrollment record
-      enrollment.completed = newCompleted
-      await enrollment.save()
+      response.redirect(
+        `/view-chapter/${chapterId}/viewpage?currentUserId=${userId}&currentPageIndex=${
+          pageId - 1
+        }`
+      )
     }
-
-    return response.status(200).json('Page status updated')
   } catch (error) {
-    console.error(error)
-    return response.status(500).json(error)
+    console.error('Error marking page as complete', error)
+    response
+      .status(500)
+      .send('An error occurred while marking the page as complete')
   }
 })
+
 app.get('/courseEnrollments/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
     const totalEnrollments = await Enrollment.findAll()
