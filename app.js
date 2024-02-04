@@ -671,7 +671,7 @@ app.post('/changePassword', async (request, response) => {
     await user.update({ password: hashedPwd })
 
     // Redirect to a success page or login page
-    response.render('passwordsuccess')
+    response.render('passwordsuccess', { title: 'Password Changed Successfully' })
   } catch (error) {
     console.log(error)
     // request.flash('error', 'Error updating the password.')
