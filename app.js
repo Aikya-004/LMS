@@ -279,7 +279,7 @@ app.post('/chapter/:courseId', connectEnsureLogin.ensureLoggedIn(), async (reque
     await Chapter.create({
       chapterName: request.body.chapterName,
       chapterDescription: request.body.chapterDescription,
-      courseId // Use the courseId from URL parameters
+      courseId // Use the courseId from URL parameters,
     })
 
     console.log('New Chapter added successfully')
