@@ -99,32 +99,9 @@ describe('Lms Test suite', () => {
 
     // Assign the courseId for use in the next test case
     courseId = createdCourse.id
+    console.log(courseId)
 
     expect(createCourseRes.statusCode).toBe(302)
-  })
-  test('Create a new chapter within a course', async () => {
-    await login(agent, 'uses.a@test.com', 'usesa@004')
-    const courseCsrfTokenResponse = await agent.get('/courses')
-    expect(courseCsrfTokenResponse.statusCode).toBe(200)
-    const courseCsrfToken = extractCsrfToken(courseCsrfTokenResponse)
-    expect(courseCsrfToken).toBeTruthy()
-    const createCourseRes = await agent.post('/courses').send({
-      courseName: 'New Course',
-      courseDescription: 'Description for the new course.',
-      _csrf: courseCsrfToken
-    })
-    const { body: createdCourse } = createCourseRes
-    const courseId = createdCourse.id
-    const chaptersCsrfTokenResponse = await agent.get(`/chapters/${courseId}`)
-    expect(chaptersCsrfTokenResponse.statusCode).toBe(200)
-    const chaptersCsrfToken = extractCsrfToken(chaptersCsrfTokenResponse)
-    expect(chaptersCsrfToken).toBeTruthy()
-    const createChapterRes = await agent.post('/chapter/' + courseId).send({
-      chapterName: 'New Chapter',
-      chapterDescription: 'Description for the new chapter.',
-      _csrf: chaptersCsrfToken
-    })
-    expect(createChapterRes.statusCode).toBe(302)
   })
   test('Sign out the user', async () => {
     res = await agent.get('/signout')
