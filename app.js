@@ -99,7 +99,7 @@ app.get('/educator', connectEnsureLogin.ensureLoggedIn(), async (request, respon
     // Fetch a specific course (for example, the first course)
     const course = availableCourses.length > 0 ? availableCourses[0] : null
 
-    response.render('educator', { name: currentUser.name, availableCourses, course })
+    response.render('educator', { name: currentUser.name, availableCourses, course, currentUser })
   } catch (error) {
     console.log(error)
     // Handle the error appropriately (e.g., render an error page or redirect to another page)
@@ -621,25 +621,40 @@ app.post('/mark-as-complete', async (request, response) => {
 
 app.get('/courseEnrollments/:courseId', connectEnsureLogin.ensureLoggedIn(), async (request, response) => {
   try {
-    const totalEnrollments = await Enrollment.findAll()
-    const totalEnrollmentsCnt = totalEnrollments.length
-    const enrollments = await Enrollment.findAll({ where: { courseId: request.params.courseId } })
-    const enrollmentUserIds = enrollments.map((enrollment) => enrollment.userId)
-    const enrollmentCnt = enrollments.length
-    const createdBy = request.user.name
+    // Fetch the course details
     const course = await Course.findByPk(request.params.courseId)
-    const enrolledstudents = await User.findAll({ where: { id: enrollmentUserIds } })
-    const percentage = (enrollmentCnt / totalEnrollmentsCnt) * 100 || 0
-    await response.render('viewreport', {
-      course,
-      enrolledstudents,
-      createdBy,
-      enrollmentCnt,
-      enrollments,
-      percentage: percentage.toFixed(1)
-    })
+
+    // Check if the logged-in user is the owner of the course
+    if (course && course.userId === request.user.id) {
+      // Proceed with fetching course reports
+      const totalEnrollments = await Enrollment.findAll()
+      const totalEnrollmentsCnt = totalEnrollments.length
+      // Fetch enrollments for the specific course
+      const enrollments = await Enrollment.findAll({ where: { courseId: request.params.courseId } })
+      const enrollmentUserIds = enrollments.map((enrollment) => enrollment.userId)
+      const enrollmentCnt = enrollments.length
+      // Fetch the course creator
+      const createdBy = request.user.name
+      // Fetch enrolled students
+      const enrolledstudents = await User.findAll({ where: { id: enrollmentUserIds } })
+      // Calculate enrollment percentage
+      const percentage = (enrollmentCnt / totalEnrollmentsCnt) * 100 || 0
+      // Render the viewreport template with necessary data
+      await response.render('viewreport', {
+        course,
+        enrolledstudents,
+        createdBy,
+        enrollmentCnt,
+        enrollments,
+        percentage: percentage.toFixed(1)
+      })
+    } else {
+      // If the user is not the owner of the course, render an error page or redirect
+      response.status(403).send('Unauthorized') // For example, send a 403 Forbidden status
+    }
   } catch (error) {
-    console.log(error)
+    console.error(error)
+    response.status(500).send('Internal Server Error') // Handle internal server error
   }
 })
 

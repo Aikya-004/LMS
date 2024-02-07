@@ -27,6 +27,7 @@ describe('Lms Test suite', () => {
     await db.sequelize.close()
     server.close()
   })
+  let courseId
   test('Sign up', async () => {
     let res = await agent.get('/signup')
     const csrfToken = extractCsrfToken(res)
@@ -57,6 +58,12 @@ describe('Lms Test suite', () => {
 
     const teacherDashboardRes = await agent.get('/student')
     expect(teacherDashboardRes.statusCode).toBe(200)
+  })
+  test('View enrolled courses', async () => {
+    await login(agent, 'uses.a@test.com', 'usesa@004')
+
+    const EnrolledDashboardRes = await agent.get('/student')
+    expect(EnrolledDashboardRes.statusCode).toBe(200)
   })
   test('Change Password', async () => {
     await login(agent, 'uses.a@test.com', 'usesa@004')
@@ -90,14 +97,28 @@ describe('Lms Test suite', () => {
     // Extract the relevant data from the response to send in the next request
     const { body: createdCourse } = createCourseRes
 
-    const createCoursesRes = await agent.post('/courses').send({
-      // Send only the necessary data, not the entire response object
-      courseName: createdCourse.courseName,
-      courseDescription: createdCourse.courseDescription,
+    // Assign the courseId for use in the next test case
+    courseId = createdCourse.id
+
+    expect(createCourseRes.statusCode).toBe(302)
+  })
+
+  test('add chapter', async () => {
+    await login(agent, 'uses.a@test.com', 'usesa@004')
+    const courseId = 1
+
+    // Simulating a request to retrieve the CSRF token
+    let res = await agent.get('/chapter')
+    const csrfToken = extractCsrfToken(res)
+    // Simulating a POST request to add a chapter
+    res = await agent.post('/chapter/' + courseId).send({
+      chapterName: 'Introduction of Java',
+      chapterDescription: 'Basics to Java',
+      courseId: 1,
       _csrf: csrfToken
     })
-
-    expect(createCoursesRes.statusCode).toBe(302)
+    // Asserting the response status code
+    expect(res.statusCode).toBe(302)
   })
   test('Sign out the user', async () => {
     res = await agent.get('/signout')
@@ -109,19 +130,4 @@ describe('Lms Test suite', () => {
     res = await agent.get('/student')
     expect(res.statusCode).toBe(302)
   })
-  // test('Create a new chapter', async () => {
-  //   let csrfToken = extractCsrfToken(await agent.get('/courses'))
-
-  //   // Assuming you have a courseId, replace '1' with the actual courseId
-  //   const courseId = request.params.courseId
-
-  //   const createChapterRes = await agent
-  //     .post(`/chapter/${courseId}`)
-  //     .send({
-  //       chapterName: 'New Chapter',
-  //       chapterDescription: 'Description for the new chapter.',
-  //       _csrf: csrfToken
-  //     })
-  //   expect(createChapterRes.statusCode).toBe(302)
-  // })
 })
