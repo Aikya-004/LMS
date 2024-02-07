@@ -298,7 +298,7 @@ app.get('/chapters/:courseId', connectEnsureLogin.ensureLoggedIn(), async (reque
       where: { courseId }
     })
 
-    response.render('chapter', { course, chapters, csrfToken: request.csrfToken() })
+    response.render('chapter', { title: 'Chapters', course, chapters, csrfToken: request.csrfToken() })
   } catch (error) {
     console.error('Error while rendering Chapters page', error)
     response.status(500).json({ error: 'Internal Server Error' })

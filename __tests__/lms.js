@@ -102,24 +102,32 @@ describe('Lms Test suite', () => {
 
     expect(createCourseRes.statusCode).toBe(302)
   })
-
-  test('add chapter', async () => {
+  test('Create a new chapter within a course', async () => {
     await login(agent, 'uses.a@test.com', 'usesa@004')
-    const courseId = 1
-
-    // Simulating a request to retrieve the CSRF token
-    let res = await agent.get('/chapter')
-    const csrfToken = extractCsrfToken(res)
-    // Simulating a POST request to add a chapter
-    res = await agent.post('/chapter/' + courseId).send({
-      chapterName: 'Introduction of Java',
-      chapterDescription: 'Basics to Java',
-      courseId: 1,
-      _csrf: csrfToken
+    const courseCsrfTokenResponse = await agent.get('/courses')
+    expect(courseCsrfTokenResponse.statusCode).toBe(200)
+    const courseCsrfToken = extractCsrfToken(courseCsrfTokenResponse)
+    expect(courseCsrfToken).toBeTruthy()
+    const createCourseRes = await agent.post('/courses').send({
+      courseName: 'New Course',
+      courseDescription: 'Description for the new course.',
+      _csrf: courseCsrfToken
     })
-    // Asserting the response status code
-    expect(res.statusCode).toBe(302)
+    const { body: createdCourse } = createCourseRes
+    const courseId = createdCourse.id
+    const chapterCreateCsrfTokenResponse = await agent.get('/chapters/:courseId')
+    expect(chapterCreateCsrfTokenResponse.statusCode).toBe(200)
+    const chapterCreateCsrfToken = extractCsrfToken(chapterCreateCsrfTokenResponse)
+    expect(chapterCreateCsrfToken).toBeTruthy()
+    const createChapterRes = await agent.post('/chapter/' + courseId).send({
+      chapterName: 'New Chapter',
+      chapterDescription: 'Description for the new chapter.',
+      courseId,
+      _csrf: chapterCreateCsrfToken
+    })
+    expect(createChapterRes.statusCode).toBe(302)
   })
+
   test('Sign out the user', async () => {
     res = await agent.get('/signout')
     expect(res.statusCode).toBe(302)

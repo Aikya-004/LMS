@@ -41,13 +41,14 @@
                     <% availableCourses.forEach(course => { %>
                         <li><%= course.courseName %></li>
                         <% if (course.userId === currentUser.id) { %>
-                            <button class="bg-white text-sky-600 px-4 py-2 p-2 m-3 rounded-md hover:bg-sky-300 focus:outline-none focus:ring focus:border-white-300 ml-4 text-white-900"> <a href="/courseEnrollments/<%= course.id %>">View Progress</a></button> <br>
+                            <button class="bg-white text-sky-600 px-4 py-2 p-2 m-3 rounded-md hover:bg-sky-300 focus:outline-none focus:ring focus:border-white-300 ml-4 text-white-900"> <a href="/courseEnrollments/<%= course.id %>">View Progress of <%= course.courseName %></a></button> <br>
+                        <% } else { %>
+                            <p class="text-white">----Course progress viewable only by owner</p>
                         <% } %>
                     <% }); %>
                 <% } else { %>
                     <li>No available courses</li>
                 <% } %>
-                
             </ul>
         </div>
     </div>
